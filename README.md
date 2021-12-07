@@ -54,7 +54,7 @@ require the `seaborn` package.
 Some included functions:
 
 - `add_scalebar()`: adds a 1 kpc scalebar (by default) to the given axis. Credit goes to
-  Dr. Toby Brown for this making this function.
+  Dr. Toby Brown for making this function.
 - `add_scalebeam()`: adds an ellipse representing an image's beam size to the given axis.
   Requires my [`radial_profiles_utils.py`](radial_profile/radial_profile_utils.py) file
 - `add_annuli_RadialProfile()`: draws annuli on an given axis from a `RadialProfile`
