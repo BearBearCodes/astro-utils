@@ -43,3 +43,7 @@ Slack, GitHub, email, etc.
 
 - Implement an option to not save a copy of the area masks in radial profile object,
   thereby decreasing memory usage
+- Add option to modify object in-place
+- Remove the `a_ins`, `a_outs`, `b_ins`, and `b_outs` attributes since I don't think they
+  are that useful
+- Make some optimizations when adding annuli based on a signal-to-noise ratio cutoff
