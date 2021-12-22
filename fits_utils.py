@@ -832,6 +832,173 @@ def bin_cut_sn_arrs_to_target(
 # * END OF "USE THESE IF INPUT ARRAYS ARE ALREADY CUT OUT TO TARGET. MAY BE BUGGY"
 
 
+def reproject_arr_to_shape(
+    arr,
+    wcs,
+    shape,
+    reproject_func=reproject.reproject_interp,
+    print_debug=False,
+):
+    """
+    Reprojects an array and WCS to a specified shape WITHOUT binning the array.
+
+    Parameters:
+      arr :: 2D array
+        The array to reproject
+      wcs :: `astropy.wcs.WCS` object
+        The WCS of the input array
+      shape :: 2-tuple of ints
+        (y, x) shape (not (x, y) shape!) of desired output array
+      reproject_func :: `reproject` function (optional)
+        The reprojection function to use (e.g., `reproject_interp`, `reproject_exact`)
+      print_debug :: bool (optional)
+        If True, print some values that may be useful for debugging
+
+    Returns: reprojected_arr, reprojected_wcs
+      reprojected_arr :: 2D array
+        The input array that has been reprojected to the desired shape
+      reprojected_wcs :: `astropy.wcs.WCS` object
+        The WCS of the reprojected array
+    """
+    if print_debug:
+        print("arr.shape (y, x):", arr.shape)
+        print("desired shape (y, x):", shape)
+    #
+    reproj_wcs_factor = np.divide(shape, arr.shape)
+    reproj_wcs_factor = reproj_wcs_factor[::-1]  # reverse order to match WCS attributes
+    # Make WCS
+    reprojected_wcs = wcs.deepcopy()
+    reprojected_wcs.wcs.crpix = wcs.wcs.crpix * reproj_wcs_factor
+    if wcs.wcs.has_cd():
+        reprojected_wcs.wcs.cd = wcs.wcs.cd / reproj_wcs_factor
+    else:
+        reprojected_wcs.wcs.cdelt = wcs.wcs.cdelt / reproj_wcs_factor
+    reprojected_wcs.array_shape = shape
+    # Reproject array (Note that reproject may sometimes raise a RuntimeWarning since it
+    # always looks at cdelt keyword)
+    if print_debug:
+        print("reproj_wcs_factor (x, y):", reproj_wcs_factor)
+    reprojected_arr = reproject_func(
+        (arr, wcs), reprojected_wcs, shape_out=shape, return_footprint=False,
+    )
+    return reprojected_arr, reprojected_wcs
+
+
+def bin_arr_to_shape(
+    arr,
+    wcs,
+    shape,
+    reproject_func=reproject.reproject_interp,
+    bin_func=np.sum,
+    bin_quadrature=False,
+    print_debug=False,
+    no_extrapolate=False,
+):
+    """
+    Bins an array and WCS to a specified shape. Be careful not to choose a shape that is
+    too dissimilar, or else reproject will either:
+    a) not be able to estimate the values if no_extrapolate is False, or
+    b) the reprojection & binning may be completely inaccurate if no_extrapolate is True
+    since the reprojected shape is not close enough to the original array shape!
+
+    Procedure:
+    First, reproject array to nearest integer multiple of desired shape and update WCS to
+    match reprojected array. Then, bin this reprojected array to desired shape and update
+    WCS.
+
+    Parameters:
+      arr :: 2D array
+        The array to reproject & bin
+      wcs :: `astropy.wcs.WCS` object
+        The WCS of the input array
+      shape :: 2-tuple of ints
+        (y, x) shape (not (x, y) shape!) of desired output array
+      reproject_func :: `reproject` function (optional)
+        The reprojection function to use (e.g., `reproject_interp`, `reproject_exact`)
+      bin_func :: `numpy` function (optional)
+        The binning function to use (i.e., `np.sum`, `np.nansum`)
+      bin_quadrature :: bool (optional)
+        If True, apply bin_func to the input array in quadrature. Use this if the input
+        array represents uncertainties (as an example)
+      print_debug :: bool (optional)
+        If True, print some values that may be useful for debugging
+      no_extrapolate :: bool (optional)
+        If True, ensure the reprojected array does not extend beyond the original array
+        (i.e., prevent NaNs). Note that if no_extrapolate is False, it does not
+        necessarily mean that the reprojection will extrapolate the array values, only
+        that it has the option to fill unknown values with NaNs
+
+    Returns: reprojected_arr, reprojected_wcs, binned_arr, binned_wcs
+      reprojected_arr :: 2D array
+        The input array that has been reprojected before binning
+      reprojected_wcs :: `astropy.wcs.WCS` object
+        The WCS of the reprojected array
+      binned_arr :: 2D array
+        The reprojected array that has been binned to the desired shape
+      binned_wcs :: `astropy.wcs.WCS` object
+        The WCS of the binned array
+    """
+    from astropy.nddata import block_reduce
+
+    if print_debug:
+        print("arr.shape (y, x):", arr.shape)
+        print("desired shape (y, x):", shape)
+    if shape[0] > arr.shape[0] or shape[1] > arr.shape[1]:
+        raise ValueError("shape parameter must be smaller than array shape.")
+    #
+    # Reproject array to nearest integer multiple of desired shape and update WCS
+    #
+    if no_extrapolate:
+        round_func = np.floor
+    else:
+        round_func = np.round
+    shape_to_arr_factor = round_func(np.divide(arr.shape, shape)).astype(int)
+    reproj_arr_shape = shape * shape_to_arr_factor
+    reproj_wcs_factor = arr.shape / reproj_arr_shape
+    reproj_wcs_factor = reproj_wcs_factor[::-1]  # reverse order to match WCS attributes
+    # Make WCS
+    reprojected_wcs = wcs.deepcopy()
+    reprojected_wcs.wcs.crpix = wcs.wcs.crpix * reproj_wcs_factor
+    if wcs.wcs.has_cd():
+        reprojected_wcs.wcs.cd = wcs.wcs.cd / reproj_wcs_factor
+    else:
+        reprojected_wcs.wcs.cdelt = wcs.wcs.cdelt / reproj_wcs_factor
+    reprojected_wcs.array_shape = reproj_arr_shape
+    # Reproject array (Note that reproject may sometimes raise a RuntimeWarning since it
+    # always looks at cdelt keyword)
+    if print_debug:
+        print("reproj_arr_shape (y, x):", reproj_arr_shape)
+        print("shape_to_arr_factor (y, x):", shape_to_arr_factor)
+        print("reproj_wcs_factor (x, y):", reproj_wcs_factor)
+    reprojected_arr = reproject_func(
+        (arr, wcs), reprojected_wcs, shape_out=reproj_arr_shape, return_footprint=False,
+    )
+    #
+    # Bin array to desired shape
+    #
+    if bin_quadrature:
+        reprojected_arr = reprojected_arr * reprojected_arr
+    binned_arr = block_reduce(
+        reprojected_arr, block_size=shape_to_arr_factor, func=bin_func
+    )
+    if bin_quadrature:
+        binned_arr = np.sqrt(binned_arr)
+    #
+    # Update WCS to binned array
+    #
+    binned_wcs = reprojected_wcs.deepcopy()
+    binned_wcs = reprojected_wcs.slice(
+        (np.s_[:: shape_to_arr_factor[0]], np.s_[:: shape_to_arr_factor[1]])
+    )  # slicing order is correct. Update shape_to_arr_factor order _after_ this step
+    shape_to_arr_factor = shape_to_arr_factor[::-1]  # reverse order to match WCS attrs
+    binned_wcs.wcs.crpix = reprojected_wcs.wcs.crpix / shape_to_arr_factor
+    if reprojected_wcs.wcs.has_cd():
+        binned_wcs.wcs.cd = reprojected_wcs.wcs.cd * shape_to_arr_factor
+    else:
+        binned_wcs.wcs.cdelt = reprojected_wcs.wcs.cdelt * shape_to_arr_factor
+    return reprojected_arr, reprojected_wcs, binned_arr, binned_wcs
+
+
 # -------------------------- END FUNCTIONS FOR REGULAR BINNING ---------------------------
 
 
