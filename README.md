@@ -20,6 +20,18 @@ Simply download the repository:
 git clone https://github.com/BearBearCodes/astro-utils.git
 ```
 
+Or you can use [`svn`](https://subversion.apache.org/) to download just the folder(s) or
+file(s) you need. For example:
+
+```bash
+svn export https://github.com/BearBearCodes/astro-utils/trunk/fits_utils.py
+svn export https://github.com/BearBearCodes/astro-utils/trunk/radial_profile/
+```
+
+Notice the `tree/master` portion of the url has been replaced with `trunk`.
+
+If you require version control, you can `svn checkout` instead of `svn export`.
+
 ## Highlights
 
 ### [`radial_profile` folder](radial_profile/)
