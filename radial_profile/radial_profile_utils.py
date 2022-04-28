@@ -73,7 +73,7 @@ def calc_eccentricity(inclination):
     return np.sqrt(1 - cosi * cosi)
 
 
-def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False):
+def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False, radius_type = 'mid'):
     """
     Calculates the "radius" of ellipses/elliptical annuli or rectangles/rectangular
     annuli.
@@ -113,6 +113,9 @@ def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False):
         rectangles (which define the rectangle's dimensions along the major axis) should
         be mapped to b_in and b_out. This is opposite to the convention used for
         ellipses/annuli (sorry!)
+      radius_type :: string ('mid' or 'outer')
+        If 'mid' calculates the midpoint between the inner and outer annuli as the radius.
+        If 'outer' returns the outer annuli value as the radius
 
     Returns: radius
       radius :: float or array of floats
@@ -125,9 +128,12 @@ def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False):
     else:
         if a_in is None or a_out is None:
             raise ValueError("a_in and a_out must be provided for ellipses/annuli")
-        inner_circularized_radius = np.sqrt(a_in * b_in)
-        outer_circularized_radius = np.sqrt(a_out * b_out)
-        return 0.5 * (inner_circularized_radius + outer_circularized_radius)
+        # small edit here for the radius calculated for radial profile
+        if radius_type == 'outer':
+            return a_out
+        elif radius_type == 'mid':
+            return 0.5*(a_in + a_out)
+        
 
 
 def correct_for_i(data, i, i_threshold=None, i_replacement=None):
@@ -1195,6 +1201,7 @@ def calc_radial_profile(
     n_bootstraps=100,
     n_samples=None,
     bootstrap_seed=None,
+    radius_type='mid',
 ):
     """
     Convenience function for calculating the radial profile of a galaxy from radio or
@@ -1334,6 +1341,9 @@ def calc_radial_profile(
       bootstrap_seed :: int (optional)
         The seed to use for bootstrapping (per ellipse/annulus); does not affect global
         seed. Ignored if bootstrap_errs is False
+      radius_type ::: string ('mid' or 'outer')
+        If 'mid' calculates the midpoint between the inner and outer annuli as the radius.
+        If 'outer' returns the outer annuli value as the radius
 
     Returns: (avg_data, avg_noise, avg_data_err, avg_noise_err, std_data, std_noise,
               data_area_mask, noise_area_mask, radii, annuli, a_ins, a_outs, b_ins,
@@ -1473,7 +1483,7 @@ def calc_radial_profile(
             bootstrap_errs=False,  # unnecessary at this stage
         )
         is_rectangle = False
-    radii = calc_radius(b_ins, b_outs, a_ins, a_outs, is_rectangle=is_rectangle)
+    radii = calc_radius(b_ins, b_outs, a_ins, a_outs, is_rectangle=is_rectangle, radius_type = radius_type)
     (
         avg_data,
         avg_noise,
