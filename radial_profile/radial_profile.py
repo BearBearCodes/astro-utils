@@ -621,7 +621,7 @@ class RadialProfile:
             self.rp_options["i_threshold"] is not None
             and self.i >= self.rp_options["i_threshold"]
         ):
-            tmp_b_ins = self.b_ins
+            tmp_b_ins = np.copy(self.b_ins)
             tmp_b_ins[0] = 0
             tmp_radii = rpu.calc_radius(tmp_b_ins, self.b_outs, is_rectangle=True)
         else:
