@@ -205,6 +205,7 @@ class RadialProfile:
         n_bootstraps=100,
         n_samples=None,
         bootstrap_seed=None,
+        radius_type = 'mid',
     ):
         """
         Calculates the radial profile of a galaxy from radio or other (e.g., optical)
@@ -333,6 +334,9 @@ class RadialProfile:
           bootstrap_seed :: int (optional)
             The seed to use for bootstrapping (per ellipse/annulus); does not affect
             global seed. Ignored if bootstrap_errs is False
+          radius_type ::: string ('mid' or 'outer')
+            If 'mid' calculates the midpoint between the inner and outer annuli as the radius.
+            If 'outer' returns the outer annuli value as the radius
 
         Returns: new_RadialProfile
           new_RadialProfile :: `RadialProfile` object
@@ -370,6 +374,7 @@ class RadialProfile:
             "n_bootstraps": n_bootstraps,
             "n_samples": n_samples,
             "bootstrap_seed": bootstrap_seed,
+            "radius_type": radius_type,
         }
         #
         # Generate radial profile
