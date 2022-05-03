@@ -73,23 +73,16 @@ def calc_eccentricity(inclination):
     return np.sqrt(1 - cosi * cosi)
 
 
-def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False, radius_type = 'mid'):
+def calc_radius(
+    b_in, b_out, a_in=None, a_out=None, is_rectangle=False, radius_type="mid"
+):
     """
     Calculates the "radius" of ellipses/elliptical annuli or rectangles/rectangular
     annuli.
 
-    For elliptical annuli, each radius is defined as the arithmetic mean of the
-    circularized radii (inner and outer circularized radii) of an annulus. For an ellipse,
-    the inner semi-major and semi-minor axes should be treated as zero.
-
-    The circularized radius, r, of an ellipse is the equivalent radius such that a circle
-    with radius r has the same area as the ellipse. If a and b are the semi-major and
-    semi-minor axes of an ellipse, then r = sqrt(a * b).
-
-    Since elliptical annuli can be thought of as the difference between two ellipses, it
-    is natural to define the average radius of an annulus to be the arithmetic mean of the
-    circularized radii of the two ellipses that form the annulus. For an ellipse's average
-    radius, the inner semi-major and semi-minor axes should be treated as zero.
+    For elliptical annuli, the radii are defined to be either the midpoint of the annulus
+    along the galaxy's major axis or the outer edge of the annulus along the galaxy's
+    major axis (depends on the radius_type parameter).
 
     For rectangular annuli, each radius is defined as the midpoint of the rectangular
     annulus' widths (e.g., along the major axis of a target). For a rectangle surrounding
@@ -113,9 +106,12 @@ def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False, radius_t
         rectangles (which define the rectangle's dimensions along the major axis) should
         be mapped to b_in and b_out. This is opposite to the convention used for
         ellipses/annuli (sorry!)
-      radius_type :: string ('mid' or 'outer')
-        If 'mid' calculates the midpoint between the inner and outer annuli as the radius.
-        If 'outer' returns the outer annuli value as the radius
+      radius_type :: "mid" or "outer" (optional)
+        If "mid", use the midpoint between the inner and outer edges of the annulus along
+        the major axis as the radius. If "outer", use the outer edge of the annulus along
+        the major axis as the radius. This parameter is only relevant if the radial
+        profiles are ellipses/annuli (i.e., this does not apply to high-inclination
+        galaxies, which use rectangular slices)
 
     Returns: radius
       radius :: float or array of floats
@@ -128,12 +124,11 @@ def calc_radius(b_in, b_out, a_in=None, a_out=None, is_rectangle=False, radius_t
     else:
         if a_in is None or a_out is None:
             raise ValueError("a_in and a_out must be provided for ellipses/annuli")
-        # small edit here for the radius calculated for radial profile
-        if radius_type == 'outer':
+        # Small edit here for the radius calculated for radial profile
+        if radius_type == "outer":
             return a_out
-        elif radius_type == 'mid':
-            return 0.5*(a_in + a_out)
-        
+        elif radius_type == "mid":
+            return 0.5 * (a_in + a_out)
 
 
 def correct_for_i(data, i, i_threshold=None, i_replacement=None):
@@ -572,11 +567,19 @@ def calc_avg_sn_aperture(
     # Create aperture masks and pad arrays if necessary
     #
     aper_mask_signal = create_aper_mask(
-        signal, aper, method=method, plot=plot, plot_title="Signal Mask",
+        signal,
+        aper,
+        method=method,
+        plot=plot,
+        plot_title="Signal Mask",
     )
     if noise is not None:
         aper_mask_noise = create_aper_mask(
-            noise, aper, method=method, plot=plot, plot_title="Noise Mask",
+            noise,
+            aper,
+            method=method,
+            plot=plot,
+            plot_title="Noise Mask",
         )
     #
     # Calculate regions over which to calculate averages
@@ -1201,14 +1204,15 @@ def calc_radial_profile(
     n_bootstraps=100,
     n_samples=None,
     bootstrap_seed=None,
-    radius_type='mid',
+    radius_type="mid",
 ):
     """
     Convenience function for calculating the radial profile of a galaxy from radio or
     other (e.g., optical) data. Data are azimuthally averaged (median or arithmetic mean)
-    in ellipses/annuli and the radii are defined to be the artihmetic means of the
-    ellipses/annuli's circularized radii. If it is a high-inclination galaxy, we fit
-    rectangles to the data instead of ellipses/annuli. In this case, each radius is
+    in ellipses/annuli and the radii are defined to be either the midpoint of the annulus
+    along the galaxy's major axis or the outer edge of the annulus along the galaxy's
+    major axis (depends on the radius_type parameter). If it is a high-inclination galaxy,
+    we fit rectangles to the data instead of ellipses/annuli. In this case, each radius is
     defined to be the midpoint of the rectangle/rectangular cutout along the galaxy's
     major axis.
 
@@ -1341,9 +1345,12 @@ def calc_radial_profile(
       bootstrap_seed :: int (optional)
         The seed to use for bootstrapping (per ellipse/annulus); does not affect global
         seed. Ignored if bootstrap_errs is False
-      radius_type ::: string ('mid' or 'outer')
-        If 'mid' calculates the midpoint between the inner and outer annuli as the radius.
-        If 'outer' returns the outer annuli value as the radius
+      radius_type :: "mid" or "outer" (optional)
+        If "mid", use the midpoint between the inner and outer edges of the annulus
+        along the major axis as the radius. If "outer", use the outer edge of the
+        annulus along the major axis as the radius. This parameter is only relevant if
+        the radial profiles are ellipses/annuli (i.e., this does not apply to
+        high-inclination galaxies, which use rectangular slices)
 
     Returns: (avg_data, avg_noise, avg_data_err, avg_noise_err, std_data, std_noise,
               data_area_mask, noise_area_mask, radii, annuli, a_ins, a_outs, b_ins,
@@ -1373,10 +1380,11 @@ def calc_radial_profile(
         contribution of that pixel (e.g., 0.5 means the pixel is "half-included"). If
         noise is None, then noise_area is also None
       radii :: 1D array
-        The radii of the ellipses/annuli. The radii are defined to be the artihmetic means
-        of the ellipses/annuli's circularized radii. If i >= i_threshold, then the radii
-        are the midpoints of the rectangles/rectangular annuli along the galaxy's major
-        axis
+        The radii of the ellipses/annuli. The radii are defined to be either the midpoint
+        of the annulus along the galaxy's major axis or the outer edge of the annulus
+        along the galaxy's major axis (depends on the selected radius_type). If i >=
+        i_threshold, then the radii are the midpoints of the rectangles/rectangular annuli
+        along the galaxy's major axis
       a_ins, a_outs :: 1D arrays
         The inner and outer semi-major axes of the ellipses/annuli in pixel units. N.B. an
         ellipse's inner semi-major axis length is 0. If i >= i_threshold, these are the
@@ -1434,7 +1442,7 @@ def calc_radial_profile(
     #
     if i_threshold is not None and i >= i_threshold:
         print(
-            "Info: Inclination greater than i_threshold. "
+            "Info: Inclination >= i_threshold. "
             + "Fitting rectangles along major axis instead of ellipses/annuli"
         )
         if high_i_height is None and include_bad:
@@ -1483,7 +1491,9 @@ def calc_radial_profile(
             bootstrap_errs=False,  # unnecessary at this stage
         )
         is_rectangle = False
-    radii = calc_radius(b_ins, b_outs, a_ins, a_outs, is_rectangle=is_rectangle, radius_type = radius_type)
+    radii = calc_radius(
+        b_ins, b_outs, a_ins, a_outs, is_rectangle=is_rectangle, radius_type=radius_type
+    )
     (
         avg_data,
         avg_noise,

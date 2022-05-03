@@ -83,10 +83,11 @@ class RadialProfile:
         contribution of that pixel (e.g., 0.5 means the pixel is "half-included"). If
         noise is None, then noise_area is also None
       radii :: 1D array
-        The radii of the ellipses/annuli. The radii are defined to be the artihmetic means
-        of the ellipses/annuli's circularized radii. If i >= i_threshold, then the radii
-        are the midpoints of the rectangles/rectangular annuli along the galaxy's major
-        axis
+        The radii of the ellipses/annuli. The radii are either the midpoint of the annulus
+        along the galaxy's major axis or the outer edge of the annulus along the galaxy's
+        major axis (depends on the value of drp_results.radius_type). If i >= i_threshold,
+        then the radii are the midpoints of the rectangles/rectangular annuli along the
+        galaxy's major axis regardless of the drp_results.radius_type value
       a_ins, a_outs :: 1D arrays
         The inner and outer semi-major axes of the ellipses/annuli in pixel units. N.B. an
         ellipse's inner semi-major axis length is 0. If i >= i_threshold, these are the
@@ -101,7 +102,7 @@ class RadialProfile:
       drp_results :: dict
         The directional_radial_profile() results with keys: "radii", "avg_data",
         "avg_noise", "avg_data_err", "avg_noise_err", "std_data", "std_noise",
-        "split_masks"
+        "split_masks", "radius_type"
     """
 
     def __init__(self, data, center, i, pa, noise=None):
@@ -205,15 +206,17 @@ class RadialProfile:
         n_bootstraps=100,
         n_samples=None,
         bootstrap_seed=None,
-        radius_type = 'mid',
+        radius_type="mid",
     ):
         """
         Calculates the radial profile of a galaxy from radio or other (e.g., optical)
         data. Data are azimuthally averaged (median or arithmetic mean) in ellipses/annuli
-        and the radii are defined to be the artihmetic means of the ellipses/annuli's
-        circularized radii. If it is a high-inclination galaxy, we fit rectangles to the
-        data instead of ellipses/annuli. In this case, each radius is defined to be the
-        midpoint of the rectangle/rectangular cutout along the galaxy's major axis.
+        and the radii are defined to be either the midpoint of the annulus along the
+        galaxy's major axis or the outer edge of the annulus along the galaxy's major axis
+        (depends on the radius_type parameter). If it is a high-inclination galaxy, we fit
+        rectangles to the data instead of ellipses/annuli. In this case, each radius is
+        defined to be the midpoint of the rectangle/rectangular cutout along the galaxy's
+        major axis.
 
         Note that these radial profile results (i.e., avg_data, avg_noise, avg_data_err,
         avg_noise_err, std_data, std_noise) are not corrected for inclination.
@@ -334,9 +337,12 @@ class RadialProfile:
           bootstrap_seed :: int (optional)
             The seed to use for bootstrapping (per ellipse/annulus); does not affect
             global seed. Ignored if bootstrap_errs is False
-          radius_type ::: string ('mid' or 'outer')
-            If 'mid' calculates the midpoint between the inner and outer annuli as the radius.
-            If 'outer' returns the outer annuli value as the radius
+          radius_type :: "mid" or "outer" (optional)
+            If "mid", use the midpoint between the inner and outer edges of the annulus
+            along the major axis as the radius. If "outer", use the outer edge of the
+            annulus along the major axis as the radius. This parameter is only relevant if
+            the radial profiles are ellipses/annuli (i.e., this does not apply to
+            high-inclination galaxies, which use rectangular slices)
 
         Returns: new_RadialProfile
           new_RadialProfile :: `RadialProfile` object
@@ -351,6 +357,8 @@ class RadialProfile:
             header_min_width_key, header_min_width_unit = None, None
         if not bootstrap_errs:
             n_bootstraps, n_samples, bootstrap_seed = None, None, None
+        if i_threshold is not None and self.i >= i_threshold:
+            radius_type = None
         #
         # Radial profile parameters/options (exlcuding debug_plot)
         #
@@ -609,7 +617,10 @@ class RadialProfile:
         #
         # Fix radius for high-inclination galaxies (so radius is still centre of rectangles)
         #
-        if self.rp_options["i_threshold"] is not None and self.i >= self.rp_options["i_threshold"]:
+        if (
+            self.rp_options["i_threshold"] is not None
+            and self.i >= self.rp_options["i_threshold"]
+        ):
             tmp_b_ins = self.b_ins
             tmp_b_ins[0] = 0
             tmp_radii = rpu.calc_radius(tmp_b_ins, self.b_outs, is_rectangle=True)
