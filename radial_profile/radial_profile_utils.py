@@ -1061,17 +1061,12 @@ def fit_rectangles(
     """
 
     def _append_rect(_num):
+        _width_out = (_num + 0.5) * min_width
         if _num == 0:
             _width_in = 0
-        else:
-            _width_in = (_num - 0.5) * min_width
-        _width_out = (_num + 0.5) * min_width
-        widths_out.append(_width_out)
-        widths_in.append(_width_in)
-        heights_out.append(height)
-        if _num == 0:
             rectangle = RectangularAperture(center, min_width, height, theta=pa)
         else:
+            _width_in = (_num - 0.5) * min_width
             rectangle = RectangularSandwich(
                 center,
                 (2 * _num - 1) * min_width,
@@ -1080,6 +1075,9 @@ def fit_rectangles(
                 height,
                 theta=pa,
             )
+        widths_in.append(_width_in)
+        widths_out.append(_width_out)
+        heights_out.append(height)
         rectangles.append(rectangle)
 
     #
