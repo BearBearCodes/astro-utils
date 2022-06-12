@@ -85,18 +85,17 @@ def calc_radius(
     major axis (depends on the radius_type parameter).
 
     For rectangular annuli, each radius is defined as the midpoint of the rectangular
-    annulus' widths (e.g., along the major axis of a target). For a rectangle surrounding
-    the origin, the inner width should be treated as the negative of the outer width to
-    ensure the radius is zero (i.e., the midpoint of the rectangle is the origin).
+    annulus' widths (e.g., along the major axis of a target). Following the convention
+    used for the first elliptical aperture, the radius for the first rectangular aperture
+    is the midpoint between the galactic centre and the edge of the rectangle along the
+    galaxy's major axis.
 
     Parameters:
       b_in, b_out :: floats or array of floats
         If is_rectangle is False, these are the inner and outer semi-minor axes of the
         ellipses/annuli. N.B. an ellipse's inner semi-minor axis length is 0.
         If is_rectangle is True, these are the inner and outer widths of the rectangular
-        annulus (aka RectangularSandwich). An ordinary rectangle has an inner width (b_in)
-        equal to the negative of its outer width (b_out), ensuring that the midpoint of
-        the rectangle is zero (i.e., radius is zero for a rectangle centred on the origin)
+        annulus (aka RectangularSandwich). N.B. a rectangle's inner width (b_in) is 0.
       a_in, a_out :: floats or array of floats
         The inner and outer semi-major axes of the ellipses/annuli. N.B. an ellipse's
         inner semi-major axis length is 0. These are ignored if is_rectangle is True
@@ -118,13 +117,10 @@ def calc_radius(
         The radii of the ellipses/annuli or rectangles/rectangular annuli as defined above
     """
     if is_rectangle:
-        # if a_in is not None or a_out is not None:
-        #     print("Info: ignoring a_in and a_out since is_rectangle is True")
         return 0.5 * (b_in + b_out)
     else:
         if a_in is None or a_out is None:
             raise ValueError("a_in and a_out must be provided for ellipses/annuli")
-        # Small edit here for the radius calculated for radial profile
         if radius_type == "outer":
             return a_out
         elif radius_type == "mid":
@@ -1056,8 +1052,8 @@ def fit_rectangles(
         RectangularAperture instead of a RectangularSandwich)
       widths_in, widths_out :: 1D arrays of floats
         The widths of the rectangles/annuli in pixel units along the direction defined by
-        the position angle. Note that a RectangularAperture has a widths_in value equal to
-        the negative of its widths_out value (ensures the radius calculation is zero)
+        the position angle. The inner width of the first rectangle (i.e., widths_in[0]) is
+        0
     """
 
     def _append_rect(_num):
@@ -1215,7 +1211,10 @@ def calc_radial_profile(
     major axis (depends on the radius_type parameter). If it is a high-inclination galaxy,
     we fit rectangles to the data instead of ellipses/annuli. In this case, each radius is
     defined to be the midpoint of the rectangle/rectangular cutout along the galaxy's
-    major axis.
+    major axis. For example, the radius for the first rectangular aperture is the based on
+    the midpoint between the galactic centre and the edge of the rectangle. Likewise, if
+    radius_type is "mid", the radius for the first elliptical aperture is taken to be the
+    midpoint between the galactic centre and the edge of the annulus.
 
     Note that these radial profile results (i.e., avg_data, avg_noise, avg_data_err,
     avg_noise_err, std_data, std_noise) are not corrected for inclination.
@@ -1392,10 +1391,9 @@ def calc_radial_profile(
         heights of the rectangles in the galaxy's minor axis direction
       b_ins, b_outs :: 1D arrays
         The inner and outer semi-minor axes of the ellipses/annuli in pixel units. N.B. an
-        ellipse's inner semi-minor axis length is 0. If >= i_threshold, these are the
+        ellipse's inner semi-minor axis length is 0. If i >= i_threshold, these are the
         widths of the rectangles in the galaxy's major axis direction (and b_ins for the
-        first rectangle will be equal to the negative of its corresponding b_outs value to
-        ensure the radius is calculated as zero)
+        first rectangle will be equal to 0)
     """
     #
     # Check inputs
