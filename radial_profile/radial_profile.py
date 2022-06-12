@@ -87,7 +87,9 @@ class RadialProfile:
         along the galaxy's major axis or the outer edge of the annulus along the galaxy's
         major axis (depends on the value of drp_results.radius_type). If i >= i_threshold,
         then the radii are the midpoints of the rectangles/rectangular annuli along the
-        galaxy's major axis regardless of the drp_results.radius_type value
+        galaxy's major axis regardless of the drp_results.radius_type value. Note that the
+        radius for the first rectangular aperture is based on the midpoint between the
+        galactic centre and the edge of the rectangle.
       a_ins, a_outs :: 1D arrays
         The inner and outer semi-major axes of the ellipses/annuli in pixel units. N.B. an
         ellipse's inner semi-major axis length is 0. If i >= i_threshold, these are the
@@ -216,7 +218,10 @@ class RadialProfile:
         (depends on the radius_type parameter). If it is a high-inclination galaxy, we fit
         rectangles to the data instead of ellipses/annuli. In this case, each radius is
         defined to be the midpoint of the rectangle/rectangular cutout along the galaxy's
-        major axis.
+        major axis. For example, the radius for the first rectangular aperture is the
+        based on the midpoint between the galactic centre and the edge of the rectangle.
+        Likewise, if radius_type is "mid", the radius for the first elliptical aperture is
+        taken to be the midpoint between the galactic centre and the edge of the annulus.
 
         Note that these radial profile results (i.e., avg_data, avg_noise, avg_data_err,
         avg_noise_err, std_data, std_noise) are not corrected for inclination.
