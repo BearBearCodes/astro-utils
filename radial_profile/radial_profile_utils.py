@@ -858,13 +858,16 @@ def fit_annuli(
     """
 
     def _append_annulus(_num):
-        # First, assume _min_width_ax == "minor"
-        b_in = _num * min_width
-        a_in = b_in * b_to_a_factor
-        if min_width_ax == "major":
-            b_in, a_in = a_in, b_in
-        b_out = b_in + min_width
-        a_out = b_out * b_to_a_factor
+        if min_width_ax == "minor":
+            b_in = _num * min_width
+            a_in = b_in * b_to_a_factor
+            b_out = b_in + min_width
+            a_out = b_out * b_to_a_factor
+        else:
+            a_in = _num * min_width
+            b_in = a_in / b_to_a_factor
+            a_out = a_in + min_width
+            b_out = a_out / b_to_a_factor
         a_ins.append(a_in)
         a_outs.append(a_out)
         b_ins.append(b_in)
