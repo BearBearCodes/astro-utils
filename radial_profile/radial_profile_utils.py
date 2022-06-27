@@ -125,6 +125,8 @@ def calc_radius(
             return a_out
         elif radius_type == "mid":
             return 0.5 * (a_in + a_out)
+        else:
+            raise ValueError("radius_type must be either 'mid' or 'outer'")
 
 
 def correct_for_i(data, i, i_threshold=None, i_replacement=None):
