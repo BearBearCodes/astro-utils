@@ -34,6 +34,41 @@ If you require version control, you can `svn checkout` instead of `svn export`.
 
 ## Highlights
 
+### [`hierarchical_vorbin_example.ipynb`](hierarchical_vorbin_example.ipynb)
+
+This is an example of hierarchical Voronoi binning, as described in the
+[`vorbin` documentation](https://www-astro.physics.ox.ac.uk/~cappellari/software/vorbin_manual.pdf).
+Note that you will need [vorbin](https://pypi.org/project/vorbin/) to run this notebook.
+In most cases, I would imagine this to be more useful than my fast Voronoi binning code,
+as my "fast" Voronoi binning code is only a few times faster than the standard `vorbin`
+implementation, but this hierarchical method can be faster than standard Voronoi binning
+by orders of magnitude. I may make this process into a proper Python function/class
+sometime in the future, and maybe I will parallelize certain steps with
+[Dask](https://docs.dask.org/en/stable/)\*.
+
+\* I think parallelizing the hierarchical Voronoi binning code is only useful if there are
+many disconnected regions in the final step where we Voronoi bin previously-unbinned
+full-resolution data. We cannot split up a contiguous region and process them in parallel
+because how we divide up the original data will affect the locations and shapes of the
+Voronoi cells (i.e., no Voronoi cell can cross a boundary where we split the data). I
+think having many disconnected full-resolution regions that we will need to Voronoi bin at
+the last step will be rare. Recall that if we need to Voronoi bin any data in this last
+step, it implies that the signal-to-noise ratio (SNR) of the original data were quite high
+to begin with. The SNR usually peaks in the centre of the object and changes (relatively)
+smoothly over the image, so having sudden pockets of high SNR seems unlikely (as opposed
+to just one big region that we need to Voronoi bin, in which case we cannot split up the
+region to process it in parallel\*\*). Hence I am not sure parallelizing the code with
+Dask will actually be important in most cases, but please let me know if your use case
+would benefit greatly from having this feature.
+
+\*\* If most of your re-binned image ends up being untouched by Voronoi binning (meaning
+you will need to Voronoi bin the full-resolution data in these regions), you may want to
+decrease your bin size used in the regular binning step, which will yield a re-binned
+image where the binned pixels/spaxels have a lower SNR than the initial re-binning. As
+Voronoi binning tries to only touch data that have an SNR less than the chosen threshold,
+more of the data will be processed in the initial Voronoi binning step, leaving fewer
+full-resolution pixels/spaxels to Voronoi bin in the second step.
+
 ### [`radial_profile` folder](radial_profile/)
 
 See the [`README`](radial_profile/README_radial_profile.md) in the `radial_profile` folder
